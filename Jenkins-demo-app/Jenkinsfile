@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    tools {
+        maven 'java-maven'
+    }  
 
     // Triggers configured for every minute (Uncomment if needed)
     // triggers {
