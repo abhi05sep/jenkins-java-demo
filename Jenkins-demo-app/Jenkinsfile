@@ -1,0 +1,67 @@
+pipeline {
+    agent any
+
+    // Triggers configured for every minute (Uncomment if needed)
+    // triggers {
+    //     pollSCM('H/1 * * * *')
+    // }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                // specific branch and url
+                git branch: 'main', 
+                    url: 'https://github.com/scaler-bhavya/jenkins-java.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir('Jenkins-demo-app') {
+                    // Maven build command
+                    sh 'mvn clean package'
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                dir('Jenkins-demo-app') {
+                    // IMPORTANT: 'java -jar' runs forever for web apps. 
+                    // Added a timeout so the pipeline doesn't hang indefinitely.
+                    timeout(time: 1, unit: 'MINUTES') { 
+                        // "|| true" ensures the pipeline continues even if we stop the server
+                        sh 'java -jar target/*.jar || true' 
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline Succeeded.'
+            mail to: 'bhavya.sachdeva.58@gmail.com', // <--- REPLACE THIS EMAIL
+                 subject: "SUCCESS: Build ${currentBuild.fullDisplayName}",
+                 body: """
+                 The build completed successfully.
+                 
+                 Project: ${env.JOB_NAME}
+                 Build Number: ${env.BUILD_NUMBER}
+                 URL: ${env.BUILD_URL}
+                 """
+        }
+        failure {
+            echo 'Pipeline Failed.'
+            mail to: 'bhavya.sachdeva.58@gmail.com', // <--- REPLACE THIS EMAIL
+                 subject: "FAILURE: Build ${currentBuild.fullDisplayName}",
+                 body: """
+                 The build failed. Please check the logs.
+                 
+                 Project: ${env.JOB_NAME}
+                 Build Number: ${env.BUILD_NUMBER}
+                 URL: ${env.BUILD_URL}
+                 """
+        }
+    }
+}
